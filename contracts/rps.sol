@@ -3,15 +3,14 @@ pragma solidity 0.4.24;
 
 contract rps{
     mapping (string => mapping(string => int)) payoffMatrix;
-    uint ownerBalance;
-    uint public balance = 0;
+    uint public gameBalance = 0;
     uint public fee = 1 wei;
     uint bid = 2 wei;
     address public owner;
     address[] public registeredPlayersAddresses;
 
-    function getBalance() public returns(uint) {
-        return balance;
+    function getGameBalance() public returns(uint) {
+        return gameBalance;
     }
 
     function getRegistered() public returns(address[]) {
@@ -29,7 +28,6 @@ contract rps{
 
     constructor() {
         owner = msg.sender;
-       // registeredPlayersAddresses.push(owner);
     }
 
     modifier ownerOnly {
@@ -70,25 +68,24 @@ contract rps{
         return winnerCount;
     }
     
-    function play() public {
+    function play() public returns (uint) {
         // for simplicity we just have rock and scissor - and return money only for winners
         // do not ask me why anyone would take scissor
         // draw considered as lose
       
         uint winnersCount = getWinnersCount();
         
-        uint share = balance / winnersCount;
+        uint share = gameBalance / winnersCount;
         for (uint j=0; j<registeredPlayersAddresses.length; j++) {
             address playerAddress = registeredPlayersAddresses[j];
-            if(players[playerAddress].choice == Choice.Scissor) {
+            if(players[playerAddress].choice == Choice.Rock) {
                 playerAddress.transfer(share);
-                balance -= share;
+                gameBalance -= share;
             }  
         }
-        
-        // add some undevided token to owner
-        ownerBalance += balance;
-        balance = 0;
+       
+        gameBalance = 0;
+        return winnersCount;
     }
 
     function register(string choiceStr) public payable
@@ -100,13 +97,12 @@ contract rps{
         registeredPlayersAddresses.push(msg.sender);
         Player memory player = Player(msg.value, choice);
         players[msg.sender] = player;
-        ownerBalance += fee;
-        balance += msg.value - fee;
+        gameBalance += msg.value - fee;
     }
     
-    function withdraw() ownerOnly public returns(bool) {
-        owner.transfer(ownerBalance);
-        ownerBalance = 0;
+    function withdraw() ownerOnly public returns (bool) {
+        owner.transfer(this.balance);
+        return true;
     }
     
     function compareStringsbyBytes(string s1, string s2) public pure returns(bool){
